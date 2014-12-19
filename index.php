@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -34,6 +35,73 @@
 </head>
 
 <body id="page-top" class="index">
+    <script type="text/javascript">
+        function reloadAfterLogin(){
+            document.formLogin.submit();
+        }
+    </script>
+<?php
+    include 'votes.php';
+    require_once 'xmlToArrayParser.class.php';
+    
+    if (isset($_GET["ticket"])){
+        $url = "https://cas.utc.fr/cas/serviceValidate?ticket=".$_GET["ticket"]."&service=http://127.0.0.1/picemon";
+        $result = file_get_contents($url);
+        
+        $parsed = new xmlToArrayParser($result);
+        $result = $parsed->array['cas:serviceResponse']['cas:authenticationSuccess']['cas:user'];
+        ?>
+        <form name="formLogin" method="POST" action="index.php">
+            <?php
+                echo "<input type=\"hidden\" value=\"".$result."\" name=\"loginUTC\"/>";
+                echo "<script> reloadAfterLogin();</script>"
+            ?>
+        </form> 
+        <?php
+    }
+    
+    if (isset($_POST['voted'])){
+
+        if ($_POST['voted'] == "false"){
+            echo "<script> alert('Poulet!'); </script>";
+        }
+    }
+
+    $userExists = false;
+    $userTeam = -1;
+    if (isset($_POST['loginUTC'])){
+        echo "<script>var isLogged = true;</script>";
+        $con = mysqli_connect("localhost", "root", "", "picemon");
+        $query = "SELECT * FROM `picemon`.`teams`";
+        $res = mysqli_query($con, $query);
+        
+        while($row = mysqli_fetch_array($res, MYSQL_NUM)){
+            if($row[0] == $_POST["loginUTC"]){
+                $userExists = true;
+                $userTeam = $row[1];
+                echo "<script>var userExists = true; var userTeam = ".$row[1].";</script>";
+
+            }
+
+        }
+
+        if ($userExists == false){
+            echo "<script>var userExists = false;</script>";
+        }
+
+       
+    }   
+
+    if (isset($_POST['choiceTeam']) && isset($_POST['loginUTC']) && $userExists == false){
+        $con = mysqli_connect("localhost", "root", "", "picemon");
+        $query = "INSERT INTO `picemon`.`teams` (login, team) VALUES (\"".$_POST['loginUTC']."\", \"".$_POST['choiceTeam']."\")";
+        $res = mysqli_query($con, $query);
+    }
+    
+
+
+
+?>
 
     <!-- Navigation -->
     <nav class="navbar navbar-default navbar-fixed-top">
@@ -56,7 +124,7 @@
                         <a href="#page-top"></a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#services">Team Rocket vs Team Sasha</a>
+                        <a class="page-scroll" href="#services">Choisis Ta Team</a>
                     </li>
                     <li>
                         <a class="page-scroll" href="#portfolio">Battle des Starters</a>
@@ -65,7 +133,16 @@
                     <li>
                         <a class="page-scroll" href="#team">Notre Team</a>
                     </li>
-              
+                    <?php
+                    if(!isset($_POST['loginUTC'])){
+                        echo "
+                            <li>
+                                <a class=\"page-scroll\" href=\"https://cas.utc.fr/cas/login?service=http://127.0.0.1/picemon\">Se Connecter</a>
+                            </li>
+                        ";
+                    }
+
+                    ?>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -91,28 +168,57 @@
             <div class="row">
                 <div class="col-lg-12 text-center">
                     <h2 class="section-heading">T. Rocket VS T. Sasha</h2>
-                    <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>
+                    <?php
+                        if ($userExists == false){
+
+                            echo "<h3 class=\"section-subheading text-muted\">Pour choisir ta team connecte toi grace au CAS, et ensuite il suffit de clicker sur le bouton Choisir!</h3>";
+
+                        }else{
+                            $teamTemp = ($userTeam == 0) ? "T. Rocket" : "T. Ash";
+                            echo "<h3 class=\"section-subheading text-muted\">T'as choisi <b>".$teamTemp."</b> comme ta team!</h3>";
+ 
+                        }
+                    ?>
                 </div>
             </div>
             <div class="row text-center">
                
                 <div class="col-md-6">
-                    <span class="fa-stack fa-4x">
-                        <i class="fa fa-circle fa-stack-2x text-primary"></i>
-                        <i class="fa fa-laptop fa-stack-1x fa-inverse"></i>
-                    </span>
+               
+                        <img class="img-responsive img-circle img-resizeJo img-centerJo" src="img/teamrocket.jpg" id="rocket" onclick="selectVoteTeamAsh('rocket'); selectToVote(0, 1);"/> <!-- 0 = rocket // 1= ash-->
+                        
+                    
                     <h4 class="service-heading">Team Rocket</h4>
-                    <p class="text-muted">sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>
+                    <p class="text-muted">Les bg de la Team Rocket qui seront la pour vous emmerder!</p>
                 </div>
                 <div class="col-md-6">
-                    <span class="fa-stack fa-4x">
-                        <i class="fa fa-circle fa-stack-2x text-primary"></i>
-                        <i class="fa fa-lock fa-stack-1x fa-inverse"></i>
-                    </span>
+                   
+                        <img class="img-responsive img-circle img-resizeJo img-centerJo" src="img/ash.jpg" id="ash" onclick="selectVoteTeamAsh('ash'); selectToVote(1, 1);"/>
+                 
                     <h4 class="service-heading">Team Sasha</h4>
-                    <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>
+                    <p class="text-muted">La Team Sasha qui passera son temps a vous animer au Pic!</p>
                 </div>
             </div>
+        </div>
+        <div class="container">
+            <form name="teamChoice" action="index.php" method="POST">
+                <?php
+                    if(isset($_POST['loginUTC'])){
+                        echo "<input type=\"hidden\" name=\"loginUTC\" id =\"loginUTC\" value=\"".$_POST['loginUTC']."\" />";        
+                    }
+                ?>
+                <input type="hidden" name="choiceTeam" id ="choiceTeam" value="" />
+
+                <?php
+                if($userExists == false){
+                    echo "
+                        <input type=\"submit\" value=\"Choisir!\" class=\"btn btn-default btn-big\"  />
+                    ";
+                }
+
+                ?>
+
+            </form>
         </div>
     </section>
 
@@ -121,100 +227,44 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 text-center">
-                    <h2 class="section-heading">Portfolio</h2>
-                    <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>
+                    <h2 class="section-heading">Battle of Starters</h2>
+                    <h3 class="section-subheading text-muted">Clickez sur votre starter prefere et submittez le vote!</h3>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal1" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/roundicons.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Round Icons</h4>
-                        <p class="text-muted">Graphic Design</p>
-                    </div>
+                    <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/charmander.jpg" id="charmander" onclick="selectVoteStarter('charmander'); selectToVote('charmander', 2);"/>
                 </div>
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal2" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/startup-framework.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Startup Framework</h4>
-                        <p class="text-muted">Website Design</p>
-                    </div>
+                  <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/squirtle.png" id="squirtle" onclick="selectVoteStarter('squirtle'); selectToVote('squirtle', 2);"/>
                 </div>
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal3" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/treehouse.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Treehouse</h4>
-                        <p class="text-muted">Website Design</p>
-                    </div>
+                    <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/bulbasaur.png" id="bulbasaur" onclick="selectVoteStarter('bulbasaur'); selectToVote('bulbasaur', 2);"/>
                 </div>
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal4" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/golden.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Golden</h4>
-                        <p class="text-muted">Website Design</p>
-                    </div>
+                   <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/cyndaquil.png" id="cyndaquil" onclick="selectVoteStarter('cyndaquil'); selectToVote('cyndaquil', 2);"/>
                 </div>
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal5" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/escape.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Escape</h4>
-                        <p class="text-muted">Website Design</p>
-                    </div>
+                   <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/totodile.png" id="totodile" onclick="selectVoteStarter('totodile'); selectToVote('totodile', 2);"/>
                 </div>
                 <div class="col-md-4 col-sm-6 portfolio-item">
-                    <a href="#portfolioModal6" class="portfolio-link" data-toggle="modal">
-                        <div class="portfolio-hover">
-                            <div class="portfolio-hover-content">
-                                <i class="fa fa-plus fa-3x"></i>
-                            </div>
-                        </div>
-                        <img src="img/portfolio/dreams.png" class="img-responsive" alt="">
-                    </a>
-                    <div class="portfolio-caption">
-                        <h4>Dreams</h4>
-                        <p class="text-muted">Website Design</p>
-                    </div>
+                 <img class="img-responsive img-circle img-resizeJo img-centerJo border-Jo" src="img/pokemon/chikorita.png" id="chikorita" onclick="selectVoteStarter('chikorita'); selectToVote('chikorita', 2);"/>
                 </div>
             </div>
+        </div> 
+        <div class="container">
+            <form id="mainForm" method="POST" action="index.php">
+                <input type="hidden" name = "voted" id ="voted" value="false"/>
+                
+                <input type="hidden" name="voteStarter" id ="voteStarter" value="" />
+                
+                            <input type="submit" value="Voter!" class="btn btn-default btn-big" /> 
+               
+            </form>
         </div>
     </section>
 
-    <!-- About Section -->
+    <!-- About Section -->`
    
 
     <!-- Team Section -->
@@ -222,14 +272,14 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 text-center">
-                    <h2 class="section-heading">Our Amazing Team</h2>
+                    <h2 class="section-heading">Notre Team de Ouf!</h2>
                     <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>
                 </div>
             </div>
             <div class="row">
                 <div class="col-sm-4">
                     <div class="team-member">
-                        <img src="img/team/felix.png" class="img-responsive img-circle" alt="">
+                        <img src="img/team/felix.jpg" class="img-responsive img-circle img-resizeJo" alt="">
                         <h4>Felix Ali&eacute;</h4>
                                                 <ul class="list-inline social-buttons">
                             
@@ -689,11 +739,12 @@
     <script src="js/cbpAnimatedHeader.js"></script>
 
     <!-- Contact Form JavaScript -->
-    <script src="js/jqBootstrapValidation.js"></script>
-    <script src="js/contact_me.js"></script>
+    <!-- // <script src="js/jqBootstrapValidation.js"></script> -->
+    <!-- // <script src="js/contact_me.js"></script> -->
 
     <!-- Custom Theme JavaScript -->
     <script src="js/agency.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
 
 </body>
 

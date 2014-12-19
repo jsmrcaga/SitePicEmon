@@ -28,11 +28,22 @@ p {
     font-size: 14px;
     line-height: 1.75;
 }
-
+.img-centerJo{
+    margin: 0 auto;
+    border-color: #333333 !important;
+    cursor:pointer;
+}
 p.large {
     font-size: 16px;
 }
+.border-Jo{
+    border: 5px !important;
+    border-color: #000;
+}
 
+.container{
+    text-align:center;
+}
 a,
 a:hover,
 a:focus,
@@ -75,6 +86,15 @@ h6 {
 
 .bg-light-gray {
     background-color: #f7f7f7;
+}
+
+.btn-big{
+    width:20%;
+    height: 50px;
+    font-size: 20px;
+    background-color: #b31123;
+    color: #CCCCCC;
+    margin: 0 auto;
 }
 
 .bg-darkest-gray {
