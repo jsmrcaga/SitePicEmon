@@ -43,17 +43,22 @@
 <?php
     include 'votes.php';
     require_once 'xmlToArrayParser.class.php';
-    
+    $userName = null;
     if (isset($_GET["ticket"])){
-        $url = "https://cas.utc.fr/cas/serviceValidate?ticket=".$_GET["ticket"]."&service=http://127.0.0.1/picemon";
+        $url = "https://cas.utc.fr/cas/serviceValidate?ticket=".$_GET["ticket"]."&service=http://".$_SERVER['HTTP_HOST']."/picemon";
         $result = file_get_contents($url);
         
         $parsed = new xmlToArrayParser($result);
+
+        
+        $userName = $parsed->array['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['cas:givenName'];
+        
         $result = $parsed->array['cas:serviceResponse']['cas:authenticationSuccess']['cas:user'];
         ?>
         <form name="formLogin" method="POST" action="index.php">
             <?php
                 echo "<input type=\"hidden\" value=\"".$result."\" name=\"loginUTC\"/>";
+                echo "<input type=\"hidden\" value=\"".$userName."\" name=\"userName\"/>";
                 echo "<script> reloadAfterLogin();</script>"
             ?>
         </form> 
@@ -137,9 +142,18 @@
                     if(!isset($_POST['loginUTC'])){
                         echo "
                             <li>
-                                <a class=\"page-scroll\" href=\"https://cas.utc.fr/cas/login?service=http://127.0.0.1/picemon\">Se Connecter</a>
+                                <a class=\"page-scroll\" href=\"https://cas.utc.fr/cas/login?service=http://".$_SERVER['HTTP_HOST']."/picemon\">Se Connecter</a>
                             </li>
                         ";
+                    }else{
+                        if ($_POST['userName'] != null){
+
+                            echo "
+                                <li>
+                                    <a class=\"page-scroll\" href=\"https://cas.utc.fr/cas/login?service=http://".$_SERVER['HTTP_HOST']."/picemon\">".$_POST['userName']."</a>
+                                </li>
+                            ";
+                        }
                     }
 
                     ?>
