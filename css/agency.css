@@ -62,7 +62,9 @@ a:active,
 a.active {
     color: #fec503;
 }
-
+.img-logoJo{
+    width:25%;
+}
 h1,
 h2,
 h3,

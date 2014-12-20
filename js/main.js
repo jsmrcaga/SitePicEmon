@@ -22,10 +22,8 @@ function selectVoteStarter(selection){
 	console.log("selectVoteStarter");
 	getElement("charmander").style.opacity = "0.5";
 	getElement("squirtle").style.opacity = "0.5";
-	getElement("cyndaquil").style.opacity = "0.5";
 	getElement("bulbasaur").style.opacity = "0.5";
-	getElement("chikorita").style.opacity = "0.5";
-	getElement("totodile").style.opacity = "0.5";
+	
 
 	getElement(selection).style.opacity = "1";
 
